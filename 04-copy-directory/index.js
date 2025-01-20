@@ -18,7 +18,9 @@ async function copyFilesToDestination(sourceFolderPath, destinationFolderPath) {
       await fs.copyFile(sourceFilePath, destinationFilePath);
     }
 
-    stdout.write(`Files copied from [${sourceFolder}] to [${copyFolderName}] successfully!${EOL}`);
+    stdout.write(
+      `Files copied from [${sourceFolder}] to [${copyFolderName}] successfully!${EOL}`
+    );
   } catch (err) {
     stdout.write(`Error copying files: ${err.message}${EOL}`);
   }

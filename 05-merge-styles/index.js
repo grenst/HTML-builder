@@ -19,8 +19,9 @@ async function mergeFiles(sourcePath, distPath, extension, encoding) {
     const outputStream = createWriteStream(distPath, encoding);
     const files = await fs.readdir(sourcePath, { withFileTypes: true });
 
-    const cssFiles = files
-      .filter(file => file.isFile() && path.extname(file.name) === extension);
+    const cssFiles = files.filter(
+      (file) => file.isFile() && path.extname(file.name) === extension
+    );
 
     for (const cssFile of cssFiles) {
       const filePath = path.join(sourcePath, cssFile.name);
@@ -28,7 +29,9 @@ async function mergeFiles(sourcePath, distPath, extension, encoding) {
       outputStream.write(`${fileContent}${EOL}`);
     }
 
-    stdout.write(`CSS files merged into [${outputBundleName}] successfully!${EOL}`);
+    stdout.write(
+      `CSS files merged into [${outputBundleName}] successfully!${EOL}`
+    );
   } catch (err) {
     stdout.write(`Error merging files: ${err.message}${EOL}`);
   }

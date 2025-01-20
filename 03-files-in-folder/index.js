@@ -8,7 +8,7 @@ const sourceFolderPath = path.join(__dirname, sourceFolder);
 const readOptions = { withFileTypes: true };
 const separator = ' - ';
 
-const formatSizeToKB = (bytes, decimalPlaces = 3) => 
+const formatSizeToKB = (bytes, decimalPlaces = 3) =>
   `${(bytes / 1024).toFixed(decimalPlaces)} KB`;
 
 async function logFileDetails(filePath, delimiter) {
@@ -33,7 +33,9 @@ async function logDirectoryFilesInfo(directoryPath, options, delimiter) {
       }
     }
   } catch (err) {
-    stdout.write(`Error reading directory '${directoryPath}': ${err.message}${EOL}`);
+    stdout.write(
+      `Error reading directory '${directoryPath}': ${err.message}${EOL}`
+    );
   }
 }
 

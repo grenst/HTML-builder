@@ -42,7 +42,12 @@ async function copyFiles(sourceDir, destinationDir) {
   }
 }
 
-async function createCssBundle(sourceDir, outputFilePath, fileExtension, encoding) {
+async function createCssBundle(
+  sourceDir,
+  outputFilePath,
+  fileExtension,
+  encoding
+) {
   try {
     const writeStream = fs.createWriteStream(outputFilePath, encoding);
     const files = await fsPromises.readdir(sourceDir);
@@ -63,14 +68,20 @@ async function createCssBundle(sourceDir, outputFilePath, fileExtension, encodin
 
 async function createHtmlBundle(templatePath, outputHtmlPath, componentsDir) {
   try {
-    const templateContent = await fsPromises.readFile(templatePath, textEncoding);
+    const templateContent = await fsPromises.readFile(
+      templatePath,
+      textEncoding
+    );
 
     const components = {};
     const componentFiles = await fsPromises.readdir(componentsDir);
 
     for (const file of componentFiles) {
       if (path.extname(file) === componentExtension) {
-        const componentContent = await fsPromises.readFile(path.join(componentsDir, file), textEncoding);
+        const componentContent = await fsPromises.readFile(
+          path.join(componentsDir, file),
+          textEncoding
+        );
         components[path.basename(file, componentExtension)] = componentContent;
       }
     }
@@ -78,7 +89,10 @@ async function createHtmlBundle(templatePath, outputHtmlPath, componentsDir) {
     let finalHtmlContent = templateContent.toString();
     for (const [name, content] of Object.entries(components)) {
       const componentTag = `{{${name}}}`;
-      finalHtmlContent = finalHtmlContent.replace(new RegExp(componentTag, 'g'), content);
+      finalHtmlContent = finalHtmlContent.replace(
+        new RegExp(componentTag, 'g'),
+        content
+      );
     }
 
     await fsPromises.writeFile(outputHtmlPath, finalHtmlContent);
@@ -93,11 +107,23 @@ async function buildProject() {
     await fsPromises.rm(outputFolderPath, { recursive: true, force: true });
     await fsPromises.mkdir(outputFolderPath, { recursive: true });
 
-    await copyFiles(assetsFolderPath, path.join(outputFolderPath, assetsFolderName));
+    await copyFiles(
+      assetsFolderPath,
+      path.join(outputFolderPath, assetsFolderName)
+    );
 
-    await createCssBundle(stylesFolderPath, path.join(outputFolderPath, cssBundleName), cssExtension, textEncoding);
+    await createCssBundle(
+      stylesFolderPath,
+      path.join(outputFolderPath, cssBundleName),
+      cssExtension,
+      textEncoding
+    );
 
-    await createHtmlBundle(templateFilePath, path.join(outputFolderPath, outputHtmlFileName), componentsFolderPath);
+    await createHtmlBundle(
+      templateFilePath,
+      path.join(outputFolderPath, outputHtmlFileName),
+      componentsFolderPath
+    );
 
     stdout.write('Project built successfully!' + EOL);
   } catch (err) {
