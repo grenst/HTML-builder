@@ -1,5 +1,4 @@
 const { stdout } = require('process');
-const { EOL } = require('os');
 const fs = require('fs');
 const fsPromises = require('fs/promises');
 const path = require('path');
@@ -22,9 +21,11 @@ const stylesFolderPath = path.join(__dirname, stylesFolderName);
 const templateFilePath = path.join(__dirname, templateFileName);
 const componentsFolderPath = path.join(__dirname, componentsFolderName);
 
-async function copyFiles(sourceDir, destinationDir) {
+async function copyAssets(sourceDir, destinationDir) {
   try {
+    await fsPromises.rm(destinationDir, { recursive: true, force: true });
     await fsPromises.mkdir(destinationDir, { recursive: true });
+
     const files = await fsPromises.readdir(sourceDir, { withFileTypes: true });
 
     for (const file of files) {
@@ -32,73 +33,64 @@ async function copyFiles(sourceDir, destinationDir) {
       const destinationPath = path.join(destinationDir, file.name);
 
       if (file.isDirectory()) {
-        await copyFiles(sourcePath, destinationPath);
+        await copyAssets(sourcePath, destinationPath);
       } else {
         await fsPromises.copyFile(sourcePath, destinationPath);
       }
     }
   } catch (err) {
-    stdout.write(`Error copying files: ${err.message}${EOL}`);
+    stdout.write(`Error copying assets: ${err.message}\n`);
   }
 }
 
-async function createCssBundle(
-  sourceDir,
-  outputFilePath,
-  fileExtension,
-  encoding
-) {
+async function createCssBundle() {
   try {
-    const writeStream = fs.createWriteStream(outputFilePath, encoding);
-    const files = await fsPromises.readdir(sourceDir);
+    const outputPath = path.join(outputFolderPath, cssBundleName);
+    const writeStream = fs.createWriteStream(outputPath, textEncoding);
+    
+    const files = await fsPromises.readdir(stylesFolderPath);
+    const cssFiles = files
+      .filter(file => path.extname(file) === cssExtension)
+      .sort((a, b) => a.localeCompare(b));
 
-    for (const file of files) {
-      if (path.extname(file) === fileExtension) {
-        const filePath = path.join(sourceDir, file);
-        const fileContent = await fsPromises.readFile(filePath, encoding);
-        writeStream.write(`${fileContent}${EOL}`);
-      }
+    for (const file of cssFiles) {
+      const filePath = path.join(stylesFolderPath, file);
+      let content = await fsPromises.readFile(filePath, textEncoding);
+
+      if (content.endsWith('\n')) content = content.slice(0, -1);
+      writeStream.write(content + '\n');
     }
 
-    stdout.write('CSS bundle created successfully!' + EOL);
+    writeStream.end();
+    stdout.write('CSS bundle created successfully!\n');
   } catch (err) {
-    stdout.write(`Error creating CSS bundle: ${err.message}${EOL}`);
+    stdout.write(`Error creating CSS bundle: ${err.message}\n`);
   }
 }
 
-async function createHtmlBundle(templatePath, outputHtmlPath, componentsDir) {
+async function createHtmlBundle() {
   try {
-    const templateContent = await fsPromises.readFile(
-      templatePath,
-      textEncoding
-    );
+    let template = await fsPromises.readFile(templateFilePath, textEncoding);
+    const components = await fsPromises.readdir(componentsFolderPath);
 
-    const components = {};
-    const componentFiles = await fsPromises.readdir(componentsDir);
-
-    for (const file of componentFiles) {
+    for (const file of components) {
       if (path.extname(file) === componentExtension) {
-        const componentContent = await fsPromises.readFile(
-          path.join(componentsDir, file),
+        const name = path.basename(file, componentExtension);
+        const content = await fsPromises.readFile(
+          path.join(componentsFolderPath, file),
           textEncoding
         );
-        components[path.basename(file, componentExtension)] = componentContent;
+        template = template.replace(new RegExp(`{{${name}}}`, 'g'), content);
       }
     }
 
-    let finalHtmlContent = templateContent.toString();
-    for (const [name, content] of Object.entries(components)) {
-      const componentTag = `{{${name}}}`;
-      finalHtmlContent = finalHtmlContent.replace(
-        new RegExp(componentTag, 'g'),
-        content
-      );
-    }
-
-    await fsPromises.writeFile(outputHtmlPath, finalHtmlContent);
-    stdout.write('HTML bundle created successfully!' + EOL);
+    await fsPromises.writeFile(
+      path.join(outputFolderPath, outputHtmlFileName),
+      template
+    );
+    stdout.write('HTML bundle created successfully!\n');
   } catch (err) {
-    stdout.write(`Error creating HTML bundle: ${err.message}${EOL}`);
+    stdout.write(`Error creating HTML bundle: ${err.message}\n`);
   }
 }
 
@@ -107,27 +99,15 @@ async function buildProject() {
     await fsPromises.rm(outputFolderPath, { recursive: true, force: true });
     await fsPromises.mkdir(outputFolderPath, { recursive: true });
 
-    await copyFiles(
-      assetsFolderPath,
-      path.join(outputFolderPath, assetsFolderName)
-    );
+    await Promise.all([
+      copyAssets(assetsFolderPath, path.join(outputFolderPath, assetsFolderName)),
+      createCssBundle(),
+      createHtmlBundle()
+    ]);
 
-    await createCssBundle(
-      stylesFolderPath,
-      path.join(outputFolderPath, cssBundleName),
-      cssExtension,
-      textEncoding
-    );
-
-    await createHtmlBundle(
-      templateFilePath,
-      path.join(outputFolderPath, outputHtmlFileName),
-      componentsFolderPath
-    );
-
-    stdout.write('Project built successfully!' + EOL);
+    stdout.write('Project built successfully!\n');
   } catch (err) {
-    stdout.write(`Error during building the project: ${err.message}${EOL}`);
+    stdout.write(`Build error: ${err.message}\n`);
   }
 }
 
